@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>EduSafe AI Ultra</title>
+
+<style>
+
+body{
+    margin:0;
+    font-family:Arial,sans-serif;
+    background:linear-gradient(135deg,#0f172a,#1e3a8a,#0ea5e9);
+    color:white;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    min-height:100vh;
+}
+
+/* APP CONTAINER */
+.app{
+    width:90%;
+    max-width:800px;
+    background:rgba(0,0,0,0.45);
+    border-radius:20px;
+    padding:20px;
+}
+
+/* CHAT BOX WITH SHADOW */
+#chatBox{
+    height:420px;
+    overflow-y:auto;
+    background:rgba(255,255,255,0.08);
+    border-radius:15px;
+    padding:15px;
+    margin-bottom:15px;
+    box-shadow:0 0 25px rgba(0,0,0,0.7);
+}
+
+/* MESSAGES */
+.message{
+    margin:10px 0;
+    padding:12px;
+    border-radius:12px;
+}
+
+.user{
+    background:#38bdf8;
+    color:black;
+}
+
+.ai{
+    background:#1e293b;
+}
+
+/* INPUT AREA */
+.inputArea{
+    display:flex;
+    gap:10px;
+}
+
+input{
+    flex:1;
+    padding:12px;
+    border:none;
+    border-radius:10px;
+    outline:none;
+}
+
+/* BUTTONS */
+button{
+    padding:12px;
+    border:none;
+    border-radius:10px;
+    cursor:pointer;
+    font-weight:bold;
+    background:#38bdf8;
+}
+
+button:hover{
+    background:#0ea5e9;
+}
+
+/* CONTROLS */
+.controls{
+    text-align:center;
+    margin-top:10px;
+}
+
+select{
+    padding:10px;
+    border-radius:10px;
+    margin-top:10px;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="app">
+
+<h1>🤖 EduSafe AI Ultra</h1>
+
+<div id="chatBox"></div>
+
+<div class="inputArea">
+
+<input id="input" placeholder="Ask anything...">
+
+<button onclick="sendMessage()">Send</button>
+
+</div>
+
+<div class="controls">
+
+<button onclick="startVoice()">🎤 Voice</button>
+
+<button onclick="clearChat()">🗑 Clear</button>
+
+<br><br>
+
+<select id="searchMode">
+<option value="wiki">Wikipedia</option>
+<option value="google">Google</option>
+</select>
+
+</div>
+
+</div>
+
+<script>
+
+let chatBox =
+document.getElementById("chatBox");
+
+let searchHistory = [];
+
+// LOAD CHAT
+window.onload = function(){
+
+    let saved =
+    localStorage.getItem("chat");
+
+    if(saved){
+        chatBox.innerHTML = saved;
+    }
+}
+
+// AUTO SAVE
+function autoSave(){
+    localStorage.setItem(
+        "chat",
+        chatBox.innerHTML
+    );
+}
+
+// SEND MESSAGE
+async function sendMessage(){
+
+    let input =
+    document.getElementById("input");
+
+    let text =
+    input.value.trim();
+
+    if(text === "") return;
+
+    addMessage("You", text, "user");
+
+    input.value = "";
+
+    let reply = aiBrain(text);
+
+    if(reply instanceof Promise){
+        reply = await reply;
+    }
+
+    addMessage("AI", reply, "ai");
+
+    speak(reply);
+
+    autoSave();
+}
+
+// AI BRAIN
+function aiBrain(msg){
+
+    msg = msg.toLowerCase();
+
+    if(msg.includes("hello")){
+        return "Hello 👋 I am EduSafe AI.";
+    }
+
+    if(msg.includes("discipline")){
+        return "Discipline means staying focused and doing the right thing even when it is hard.";
+    }
+
+    if(msg.includes("speech")){
+        return "A speech has introduction, body, and conclusion.";
+    }
+
+    if(msg.includes("homework")){
+        return "Send your homework question.";
+    }
+
+    if(msg.includes("math")){
+        return "Send math problem and I will help.";
+    }
+
+    return searchOnline(msg);
+}
+
+// ONLINE SEARCH
+async function searchOnline(query){
+
+    let mode =
+    document.getElementById("searchMode").value;
+
+    if(mode === "google"){
+
+        window.open(
+        "https://www.google.com/search?q=" + query,
+        "_blank"
+        );
+
+        return "Opened Google search 🔎";
+    }
+
+    try{
+
+        let url =
+        "https://en.wikipedia.org/api/rest_v1/page/summary/" +
+        encodeURIComponent(query);
+
+        let res = await fetch(url);
+
+        let data = await res.json();
+
+        return data.extract || "No information found.";
+
+    }catch{
+
+        return "Internet required for Wikipedia search.";
+    }
+}
+
+// ADD MESSAGE
+function addMessage(sender,text,type){
+
+    chatBox.innerHTML += `
+    <div class="message ${type}">
+    <b>${sender}:</b> ${text}
+    </div>
+    `;
+
+    chatBox.scrollTop =
+    chatBox.scrollHeight;
+}
+
+// CLEAR CHAT
+function clearChat(){
+
+    chatBox.innerHTML = "";
+
+    localStorage.removeItem("chat");
+}
+
+// SPEAK
+function speak(text){
+
+    let speech =
+    new SpeechSynthesisUtterance(text);
+
+    speechSynthesis.speak(speech);
+}
+
+// VOICE INPUT
+function startVoice(){
+
+    if(!("webkitSpeechRecognition" in window)){
+        alert("Voice not supported");
+        return;
+    }
+
+    let recognition =
+    new webkitSpeechRecognition();
+
+    recognition.onresult =
+    function(event){
+
+        document.getElementById("input").value =
+        event.results[0][0].transcript;
+    }
+
+    recognition.start();
+}
+
+</script>
+
+</body>
+</html>
